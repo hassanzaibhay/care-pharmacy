@@ -10,6 +10,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { useState } from "react";
 
 export default function LoginPage() {
@@ -51,7 +52,9 @@ export default function LoginPage() {
       display="flex"
       alignItems="center"
       justifyContent="center"
-      sx={{ background: "linear-gradient(135deg, #e8f0ff, #f0fbff)" }}
+      sx={(t) => ({
+        background: `linear-gradient(135deg, ${alpha(t.palette.primary.main, 0.08)}, ${alpha(t.palette.secondary.light, 0.1)})`,
+      })}
     >
       <Card sx={{ maxWidth: 460, width: "100%" }}>
         <CardContent>
@@ -61,10 +64,10 @@ export default function LoginPage() {
                 component="img"
                 src="/app_logo.png"
                 alt="Care Pharmacy"
-                sx={{ height: 64, width: 64, borderRadius: 12, boxShadow: 1 }}
+                sx={{ height: 64, width: 64, borderRadius: "50%", boxShadow: 1 }}
               />
             </Stack>
-            <Typography variant="h5" fontWeight={800} textAlign="center" color="primary">
+            <Typography variant="h5" textAlign="center" color="primary">
               Care Pharmacy Admin
             </Typography>
             <Typography variant="body2" color="text.secondary" textAlign="center">
