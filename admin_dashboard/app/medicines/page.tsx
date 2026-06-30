@@ -200,7 +200,7 @@ const handleSave = async (payload: any) => {
       });
       if (removed.length) {
         await Promise.all(
-          removed.map(async (url) => {
+          removed.map(async (url: string) => {
             try {
               await fetch(`/api/admin/medicines/image`, {
                 method: "DELETE",
