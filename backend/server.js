@@ -7,6 +7,7 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 const swaggerUi = require('swagger-ui-express');
 
+const cookieParser = require('cookie-parser');
 const connectDB = require('./src/config/db');
 const { notFound, errorHandler } = require('./src/middleware/errorHandler');
 const authRoutes = require('./src/routes/authRoutes');
@@ -63,6 +64,7 @@ app.use(
   })
 );
 app.use(express.urlencoded({ extended: true, limit: '3mb' }));
+app.use(cookieParser());
 
 // Swagger docs
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
