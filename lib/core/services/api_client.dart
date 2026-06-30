@@ -7,7 +7,9 @@ import 'package:http/http.dart' as http;
 class ApiClient {
   ApiClient({String? token})
       : _token = token,
-        baseUrl = kIsWeb ? 'http://localhost:3000/api' : 'http://10.0.2.2:3000/api';
+        baseUrl = kIsWeb
+            ? String.fromEnvironment('API_URL', defaultValue: 'http://localhost:3000/api')
+            : String.fromEnvironment('API_URL', defaultValue: 'http://10.0.2.2:3000/api');
 
   final String baseUrl;
   String? _token;
