@@ -53,11 +53,6 @@ export default function Sidebar() {
     } catch (_) {
       // best-effort — navigate to login regardless
     }
-    if (typeof window !== "undefined") {
-      // Remove stale admin_user display data left by pre-Gate-3 sessions.
-      // admin_token is no longer written (Gate 3+); clearing it is a no-op.
-      localStorage.removeItem("admin_user");
-    }
     router.push("/login");
   };
 

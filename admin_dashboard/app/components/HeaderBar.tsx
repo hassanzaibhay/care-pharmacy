@@ -7,18 +7,16 @@ export default function HeaderBar({ title }: { title: string }) {
   const [userName, setUserName] = useState<string>("Admin");
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = localStorage.getItem("admin_user");
-    if (!stored) return;
-    try {
-      const parsed = JSON.parse(stored);
-      if (parsed?.name) {
-        // schedule state update to avoid lint about sync setState in effect
-        setTimeout(() => setUserName(parsed.name), 0);
-      }
-    } catch {
-      // ignore malformed storage
-    }
+    // Fetch the current admin identity from /me (cookie-authed).
+    // 401 is expected when unauthenticated — not an error, just keep the fallback.
+    fetch("/api/admin/me", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.data?.name) setUserName(data.data.name);
+      })
+      .catch(() => {
+        // network failure — keep "Admin" fallback
+      });
   }, []);
 
   return (

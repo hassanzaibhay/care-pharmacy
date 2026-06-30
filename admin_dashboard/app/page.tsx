@@ -4,10 +4,15 @@ import { useEffect } from "react";
 
 export default function Home() {
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("admin_token");
-      window.location.href = token ? "/dashboard" : "/login";
-    }
+    // Probe /me to decide where bare "/" should go.
+    // 401 is the expected unauthenticated response — not an error.
+    fetch("/api/admin/me", { credentials: "include" })
+      .then((res) => {
+        window.location.href = res.ok ? "/dashboard" : "/login";
+      })
+      .catch(() => {
+        window.location.href = "/login";
+      });
   }, []);
   return null;
 }

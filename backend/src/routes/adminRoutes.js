@@ -3,6 +3,7 @@ const { body, param, query } = require('express-validator');
 const {
   adminLogin,
   adminLogout,
+  getMe,
   getStats,
   getEarningsByYear,
   getTopManufacturers,
@@ -61,6 +62,7 @@ router.post(
 router.use(protect, requireRole('admin'));
 
 router.post('/auth/logout', adminLogout);
+router.get('/me', getMe);
 
 // Dashboard stats
 /**

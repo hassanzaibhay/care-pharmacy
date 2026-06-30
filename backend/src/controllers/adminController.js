@@ -75,6 +75,11 @@ const adminLogout = asyncHandler(async (req, res) => {
   res.json({ message: 'Logged out' });
 });
 
+const getMe = asyncHandler(async (req, res) => {
+  const { _id, name, email, role } = req.user;
+  res.json({ data: { id: _id, name, email, role } });
+});
+
 // Dashboard stats
 const getStats = asyncHandler(async (req, res) => {
   const [userCount, orders, orderAmounts] = await Promise.all([
@@ -766,8 +771,9 @@ const getMedicineDetailAdmin = asyncHandler(async (req, res) => {
 
 module.exports = {
   adminLogin,
-  getStats,
   adminLogout,
+  getMe,
+  getStats,
   getEarningsByYear,
   getTopManufacturers,
   getTopMedicines,
