@@ -46,8 +46,15 @@ android/app/release
 backend/node_modules/
 admin_dashboard/node_modules/
 
-# Backend uploads
-backend/uploads/
+# Backend uploads — ignore all runtime files but preserve directory markers
+backend/uploads/**
+!backend/uploads/avatars/
+!backend/uploads/avatars/.gitkeep
+!backend/uploads/medicines/
+!backend/uploads/medicines/.gitkeep
+
+# npm update-notifier cache
+backend/npm-cache/
 
 # Next.js admin dashboard
 admin_dashboard/.next/
