@@ -47,9 +47,15 @@ export default function Sidebar() {
     setCollapsed((prev) => !prev);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/admin/auth/logout", { method: "POST", credentials: "include" });
+    } catch (_) {
+      // best-effort — navigate to login regardless
+    }
     if (typeof window !== "undefined") {
-      localStorage.removeItem("admin_token");
+      // Remove stale admin_user display data left by pre-Gate-3 sessions.
+      // admin_token is no longer written (Gate 3+); clearing it is a no-op.
       localStorage.removeItem("admin_user");
     }
     router.push("/login");

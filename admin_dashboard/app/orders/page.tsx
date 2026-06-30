@@ -45,13 +45,12 @@ import Sidebar from "../components/Sidebar";
 import HeaderBar from "../components/HeaderBar";
 import StatusChip from "../components/StatusChip";
 
-const API_BASE = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || "http://localhost:3000/api/admin";
-
 const fetcher = async (url: string) => {
-  const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
-  const res = await fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
+  const res = await fetch(url, { credentials: "include" });
+  if (res.status === 401) {
+    if (typeof window !== "undefined") window.location.href = "/login";
+    throw new Error("Unauthorized");
+  }
   const data = await res.json();
   if (!res.ok) throw new Error(data?.message || "Failed to fetch");
   return data;
@@ -91,12 +90,12 @@ export default function OrdersPage() {
     params.set("sortDir", sortDir);
     if (search.trim().length >= 3) params.set("search", search.trim());
     if (status !== "all") params.set("status", status);
-    return `${API_BASE}/orders?${params.toString()}`;
+    return `/api/admin/orders?${params.toString()}`;
   }, [search, status, page, limit, sortBy, sortDir]);
 
   const { data, error, isLoading, mutate } = useSWR(listUrl, fetcher);
 
-  const detailUrl = selectedId ? `${API_BASE}/orders/${selectedId}` : null;
+  const detailUrl = selectedId ? `/api/admin/orders/${selectedId}` : null;
   const {
     data: detail,
     isLoading: detailLoading,
@@ -117,14 +116,10 @@ export default function OrdersPage() {
 
   const handleMarkComplete = async (id: string) => {
     try {
-      await fetch(`${API_BASE}/orders/${id}/status`, {
+      await fetch(`/api/admin/orders/${id}/status`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...(typeof window !== "undefined" && localStorage.getItem("admin_token")
-            ? { Authorization: `Bearer ${localStorage.getItem("admin_token")}` }
-            : {}),
-        },
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ status: "completed", deliveryStatus: "Completed" }),
       }).then(async (res) => {
         const payload = await res.json();
@@ -137,7 +132,8 @@ export default function OrdersPage() {
     }
   };
 
-  if (!useIsClient()) return null;
+  const isClient = useIsClient();
+  if (!isClient) return null;
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>

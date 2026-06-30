@@ -46,14 +46,15 @@ import { useMemo, useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import HeaderBar from "../components/HeaderBar";
 
-const API_BASE = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || "http://localhost:3000/api/admin";
 const placeholderImg =
   "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=400&q=60";
+// Convert absolute backend URLs to relative paths so the Next.js /uploads proxy handles them.
 const resolveImageUrl = (url?: string) => {
   if (!url) return placeholderImg;
-  if (url.startsWith("http")) return url;
-  const base = (process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || "").replace(/\/api\/admin$/, "");
-  return `${base}${url.startsWith("/") ? "" : "/"}${url}`;
+  if (url.startsWith("http")) {
+    try { return new URL(url).pathname; } catch { return url; }
+  }
+  return url.startsWith("/") ? url : `/${url}`;
 };
 
 const useIsClient = () => {
@@ -65,10 +66,11 @@ const useIsClient = () => {
 };
 
 const fetcher = async (url: string) => {
-  const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
-  const res = await fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
+  const res = await fetch(url, { credentials: "include" });
+  if (res.status === 401) {
+    if (typeof window !== "undefined") window.location.href = "/login";
+    throw new Error("Unauthorized");
+  }
   const data = await res.json();
   if (!res.ok) throw new Error(data?.message || "Failed to fetch");
   return data;
@@ -101,13 +103,13 @@ export default function MedicinesPage() {
     params.set("sortDir", sortDir);
     if (search.trim().length >= 3) params.set("search", search.trim());
     if (minRating !== "all") params.set("rating", minRating);
-    return `${API_BASE}/medicines?${params.toString()}`;
+    return `/api/admin/medicines?${params.toString()}`;
   }, [page, limit, sortBy, sortDir, search, minRating]);
 
   const { data, error, isLoading, mutate } = useSWR(listUrl, fetcher);
-  const detailUrl = selectedId ? `${API_BASE}/medicines/${selectedId}` : null;
+  const detailUrl = selectedId ? `/api/admin/medicines/${selectedId}` : null;
   const { data: detail, isLoading: detailLoading, error: detailError } = useSWR(detailUrl, fetcher);
-  const editUrl = editId && editId !== "new" ? `${API_BASE}/medicines/${editId}` : null;
+  const editUrl = editId && editId !== "new" ? `/api/admin/medicines/${editId}` : null;
   const { data: editData } = useSWR(editUrl, fetcher);
 
   const medicines = data?.data ?? [];
@@ -126,13 +128,9 @@ export default function MedicinesPage() {
   const handleDelete = async () => {
     if (!deleteId) return;
     try {
-      await fetch(`${API_BASE}/medicines/${deleteId}`, {
+      await fetch(`/api/admin/medicines/${deleteId}`, {
         method: "DELETE",
-        headers: {
-          ...(typeof window !== "undefined" && localStorage.getItem("admin_token")
-            ? { Authorization: `Bearer ${localStorage.getItem("admin_token")}` }
-            : {}),
-        },
+        credentials: "include",
       }).then(async (res) => {
         const payload = await res.json();
         if (!res.ok) throw new Error(payload?.message || "Failed to delete");
@@ -168,13 +166,9 @@ const handleSave = async (payload: any) => {
       if (payload.files && payload.files.length) {
         const formData = new FormData();
         Array.from(payload.files as FileList).forEach((file) => formData.append("images", file));
-        const uploadRes = await fetch(`${API_BASE}/medicines/images`, {
+        const uploadRes = await fetch(`/api/admin/medicines/images`, {
           method: "POST",
-          headers: {
-            ...(typeof window !== "undefined" && localStorage.getItem("admin_token")
-              ? { Authorization: `Bearer ${localStorage.getItem("admin_token")}` }
-              : {}),
-          },
+          credentials: "include",
           body: formData,
         });
         const uploadData = await uploadRes.json();
@@ -192,16 +186,12 @@ const handleSave = async (payload: any) => {
       delete body.removedImages;
 
       const method = isEditing ? "PUT" : "POST";
-      const url = isEditing ? `${API_BASE}/medicines/${editId}` : `${API_BASE}/medicines`;
+      const url = isEditing ? `/api/admin/medicines/${editId}` : `/api/admin/medicines`;
 
       await fetch(url, {
         method,
-        headers: {
-          "Content-Type": "application/json",
-          ...(typeof window !== "undefined" && localStorage.getItem("admin_token")
-            ? { Authorization: `Bearer ${localStorage.getItem("admin_token")}` }
-            : {}),
-        },
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(body),
       }).then(async (res) => {
         const data = await res.json();
@@ -212,14 +202,10 @@ const handleSave = async (payload: any) => {
         await Promise.all(
           removed.map(async (url) => {
             try {
-              await fetch(`${API_BASE}/medicines/image`, {
+              await fetch(`/api/admin/medicines/image`, {
                 method: "DELETE",
-                headers: {
-                  "Content-Type": "application/json",
-                  ...(typeof window !== "undefined" && localStorage.getItem("admin_token")
-                    ? { Authorization: `Bearer ${localStorage.getItem("admin_token")}` }
-                    : {}),
-                },
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify({ url }),
               });
             } catch (_) {
@@ -509,7 +495,7 @@ function MedicineDetailDialog({
   onClose: () => void;
   medicineId: string | null;
 }) {
-  const url = medicineId ? `${API_BASE}/medicines/${medicineId}` : null;
+  const url = medicineId ? `/api/admin/medicines/${medicineId}` : null;
   const { data, error, isLoading } = useSWR(url, fetcher);
   const med = data?.data;
   const img = resolveImageUrl(med?.imageUrls?.[0] || med?.imageUrl);

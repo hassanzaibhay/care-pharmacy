@@ -52,8 +52,6 @@ import {
   Tooltip as RechartTooltip,
 } from "recharts";
 
-const API_BASE = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || "http://localhost:3000/api/admin";
-
 const useIsClient = () => {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -63,10 +61,7 @@ const useIsClient = () => {
 };
 
 const fetcher = async (url: string) => {
-  const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
-  const res = await fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
+  const res = await fetch(url, { credentials: "include" });
   if (res.status === 401) {
     if (typeof window !== "undefined") window.location.href = "/login";
     throw new Error("Unauthorized");
@@ -78,7 +73,7 @@ const fetcher = async (url: string) => {
 
 export default function DashboardPage() {
   const isClient = useIsClient();
-  const { data, error, isLoading, mutate } = useSWR(`${API_BASE}/stats`, fetcher);
+  const { data, error, isLoading, mutate } = useSWR(`/api/admin/stats`, fetcher);
 
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
@@ -90,13 +85,13 @@ export default function DashboardPage() {
     error: earningsError,
     isLoading: earningsLoading,
     mutate: mutateEarnings,
-  } = useSWR(`${API_BASE}/earnings?year=${year}`, fetcher);
+  } = useSWR(`/api/admin/earnings?year=${year}`, fetcher);
   const { data: topManufacturers, error: topManuError, isLoading: topManuLoading } = useSWR(
-    `${API_BASE}/top-manufacturers?year=${topYear}&month=${topMonth}`,
+    `/api/admin/top-manufacturers?year=${topYear}&month=${topMonth}`,
     fetcher
   );
   const { data: topMedicines, error: topMedError, isLoading: topMedLoading } = useSWR(
-    `${API_BASE}/top-medicines?year=${topYear}&month=${topMonth}`,
+    `/api/admin/top-medicines?year=${topYear}&month=${topMonth}`,
     fetcher
   );
 
@@ -224,20 +219,16 @@ function OrderActions({
 }
 
 function OrdersPreview() {
-  const { data, error, isLoading, mutate } = useSWR(`${API_BASE}/orders`, fetcher);
+  const { data, error, isLoading, mutate } = useSWR(`/api/admin/orders`, fetcher);
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   const markDelivered = async (id: string) => {
     try {
       setLoadingId(id);
-      await fetch(`${API_BASE}/orders/${id}/deliver`, {
+      await fetch(`/api/admin/orders/${id}/deliver`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...(typeof window !== "undefined" && localStorage.getItem("admin_token")
-            ? { Authorization: `Bearer ${localStorage.getItem("admin_token")}` }
-            : {}),
-        },
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
       }).then(async (res) => {
         const payload = await res.json();
         if (!res.ok) throw new Error(payload?.message || "Failed to update");

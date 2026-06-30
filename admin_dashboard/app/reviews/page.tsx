@@ -33,13 +33,12 @@ import { useEffect, useMemo, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import HeaderBar from "../components/HeaderBar";
 
-const API_BASE = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || "http://localhost:3000/api/admin";
-
 const fetcher = async (url: string) => {
-  const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
-  const res = await fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
+  const res = await fetch(url, { credentials: "include" });
+  if (res.status === 401) {
+    if (typeof window !== "undefined") window.location.href = "/login";
+    throw new Error("Unauthorized");
+  }
   const data = await res.json();
   if (!res.ok) throw new Error(data?.message || "Failed to fetch");
   return data;
@@ -99,7 +98,7 @@ export default function ReviewsPage() {
     params.set("sortDirection", sortDir);
     if (search.trim().length >= 3) params.set("search", search.trim());
     if (rating !== "all") params.set("rating", rating);
-    return `${API_BASE}/reviews?${params.toString()}`;
+    return `/api/admin/reviews?${params.toString()}`;
   }, [page, limit, sortField, sortDir, search, rating]);
 
   const { data, error, isLoading } = useSWR(listUrl, fetcher);

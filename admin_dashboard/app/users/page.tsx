@@ -41,13 +41,12 @@ import Sidebar from "../components/Sidebar";
 import HeaderBar from "../components/HeaderBar";
 import Grid from "@mui/material/Grid";
 
-const API_BASE = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || "http://localhost:3000/api/admin";
-
 const fetcher = async (url: string) => {
-  const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
-  const res = await fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
+  const res = await fetch(url, { credentials: "include" });
+  if (res.status === 401) {
+    if (typeof window !== "undefined") window.location.href = "/login";
+    throw new Error("Unauthorized");
+  }
   const data = await res.json();
   if (!res.ok) throw new Error(data?.message || "Failed to fetch");
   return data;
@@ -93,11 +92,11 @@ export default function UsersPage() {
     params.set("sortBy", sortBy);
     params.set("sortDir", sortDir);
     if (search.trim().length >= 3) params.set("search", search.trim());
-    return `${API_BASE}/users?${params.toString()}`;
+    return `/api/admin/users?${params.toString()}`;
   }, [page, limit, sortBy, sortDir, search]);
 
   const { data, error, isLoading } = useSWR(listUrl, fetcher);
-  const detailUrl = selectedId ? `${API_BASE}/users/${selectedId}` : null;
+  const detailUrl = selectedId ? `/api/admin/users/${selectedId}` : null;
   const { data: detail, isLoading: detailLoading, error: detailError } = useSWR(detailUrl, fetcher);
 
   const users = data?.data ?? [];

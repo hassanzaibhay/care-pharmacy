@@ -42,13 +42,12 @@ import { useMemo, useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import HeaderBar from "../components/HeaderBar";
 
-const API_BASE = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || "http://localhost:3000/api/admin";
-
 const fetcher = async (url: string) => {
-  const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
-  const res = await fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
+  const res = await fetch(url, { credentials: "include" });
+  if (res.status === 401) {
+    if (typeof window !== "undefined") window.location.href = "/login";
+    throw new Error("Unauthorized");
+  }
   const data = await res.json();
   if (!res.ok) throw new Error(data?.message || "Failed to fetch");
   return data;
@@ -80,7 +79,7 @@ export default function ConfigPage() {
     params.set("page", String(page));
     params.set("limit", String(limit));
     if (search.trim().length >= 3) params.set("search", search.trim());
-    return `${API_BASE}/config?${params.toString()}`;
+    return `/api/admin/config?${params.toString()}`;
   }, [page, limit, search]);
 
   const { data, error, isLoading, mutate } = useSWR(listUrl, fetcher);
@@ -111,14 +110,10 @@ export default function ConfigPage() {
       parsed = form.payload;
     }
     try {
-      await fetch(`${API_BASE}/config`, {
+      await fetch(`/api/admin/config`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(typeof window !== "undefined" && localStorage.getItem("admin_token")
-            ? { Authorization: `Bearer ${localStorage.getItem("admin_token")}` }
-            : {}),
-        },
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           key: form.key.trim(),
           payload: parsed,
@@ -142,13 +137,9 @@ export default function ConfigPage() {
   const handleDelete = async () => {
     if (!confirmDelete) return;
     try {
-      await fetch(`${API_BASE}/config/${confirmDelete}`, {
+      await fetch(`/api/admin/config/${confirmDelete}`, {
         method: "DELETE",
-        headers: {
-          ...(typeof window !== "undefined" && localStorage.getItem("admin_token")
-            ? { Authorization: `Bearer ${localStorage.getItem("admin_token")}` }
-            : {}),
-        },
+        credentials: "include",
       }).then(async (res) => {
         const payload = await res.json();
         if (!res.ok) throw new Error(payload?.message || "Delete failed");
