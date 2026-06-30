@@ -15,8 +15,8 @@ import { useState } from "react";
 const API_BASE = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || "http://localhost:3000/api/admin";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("admin@carepharmacy.com");
-  const [password, setPassword] = useState("Admin@123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
