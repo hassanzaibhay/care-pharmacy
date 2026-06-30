@@ -12,8 +12,8 @@ import {
   Tooltip,
   useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import PeopleIcon from "@mui/icons-material/People";
@@ -23,6 +23,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { useSidebar } from "../contexts/SidebarContext";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: <DashboardIcon /> },
@@ -33,182 +34,187 @@ const navItems = [
   { label: "Config", href: "/config", icon: <SettingsIcon /> },
 ];
 
-const DRAWER_WIDTH = 230;
+const DRAWER_EXPANDED = 230;
 const DRAWER_COLLAPSED = 74;
-const HEADER_OFFSET_PX = 64; // height of your top header/appbar
+// Must match the AppBar Toolbar height (MUI default = 64px).
+const HEADER_HEIGHT = 64;
 
 export default function Sidebar() {
   const theme = useTheme();
   const pathname = usePathname();
   const router = useRouter();
-  const [collapsed, setCollapsed] = useState(false); // default expanded
+  const { collapsed, toggleCollapsed, mobileOpen, closeMobile, isMobile } = useSidebar();
 
-  const toggleCollapsed = () => {
-    setCollapsed((prev) => !prev);
-  };
+  const isCollapsed = collapsed && !isMobile;
+  const drawerWidth = isCollapsed ? DRAWER_COLLAPSED : DRAWER_EXPANDED;
 
   const handleLogout = async () => {
     try {
       await fetch("/api/admin/auth/logout", { method: "POST", credentials: "include" });
     } catch (_) {
-      // best-effort — navigate to login regardless
+      // best-effort — navigate regardless
     }
     router.push("/login");
   };
 
-  const drawerWidth = collapsed ? DRAWER_COLLAPSED : DRAWER_WIDTH;
+  const navigate = (href: string) => {
+    router.push(href);
+    if (isMobile) closeMobile();
+  };
 
-  return (
-    <Drawer
-      variant="permanent"
-      sx={(t) => ({
-        width: drawerWidth,
-        flexShrink: 0,
-        whiteSpace: "nowrap",
-        overflowX: "hidden",
-        transition: t.transitions.create("width", {
-          easing: t.transitions.easing.sharp,
-          duration: t.transitions.duration.enteringScreen,
-        }),
-        "& .MuiDrawer-paper": {
-          width: drawerWidth,
-          boxSizing: "border-box",
-          borderRight: "none",
-          backgroundColor: theme.palette.primary.main,
-          color: "#fff",
-          overflowY: "auto",
-          overflowX: "hidden",
-          position: "fixed",
-          top: HEADER_OFFSET_PX,
+  // Shared paper styles — colours are theme tokens; no hardcoded hex values.
+  const paperSx = {
+    width: drawerWidth,
+    boxSizing: "border-box" as const,
+    borderRight: "none",
+    bgcolor: "primary.main",
+    color: "primary.contrastText",
+    overflowY: "auto" as const,
+    overflowX: "hidden" as const,
+    ...(isMobile
+      ? {}
+      : {
+          position: "fixed" as const,
+          top: HEADER_HEIGHT,
           left: 0,
-          height: `calc(100vh - ${HEADER_OFFSET_PX}px)`,
-          transition: t.transitions.create("width", {
-            easing: t.transitions.easing.sharp,
-            duration: t.transitions.duration.enteringScreen,
+          height: `calc(100vh - ${HEADER_HEIGHT}px)`,
+          transition: theme.transitions.create("width", {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
           }),
-        },
-      })}
-    >
-      {/* Sidebar Content */}
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          height: "100%",
-          position: "relative",
-          pt: 1.5,
-        }}
-      >
-        {/* Navigation Links */}
-        <List sx={{ flexGrow: 1, py: 0.5 }}>
-          {navItems.map((item) => {
-            const active =
-              pathname === item.href ||
-              pathname.startsWith(`${item.href}/`) ||
-              (item.href === "/dashboard" &&
-                (pathname === "/" || pathname === ""));
+        }),
+  };
 
-            return (
+  const drawerContent = (
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        position: "relative",
+        pt: 1.5,
+      }}
+    >
+      {/* Navigation */}
+      <List sx={{ flexGrow: 1, py: 0.5 }}>
+        {navItems.map((item) => {
+          const active =
+            pathname === item.href ||
+            pathname.startsWith(`${item.href}/`) ||
+            (item.href === "/dashboard" && (pathname === "/" || pathname === ""));
+
+          return (
+            <Tooltip
+              key={item.href}
+              title={isCollapsed ? item.label : ""}
+              placement="right"
+              arrow
+            >
               <ListItemButton
-                key={item.href}
                 selected={active}
-                onClick={() => router.push(item.href)}
-                sx={{
-                  borderRadius: 2,
-                  mx: collapsed ? 1 : 2,
+                onClick={() => navigate(item.href)}
+                sx={(t) => ({
+                  borderRadius: 1,
+                  mx: isCollapsed ? 1 : 2,
                   mb: 0.5,
-                  transition:
-                    "background 0.2s ease, color 0.2s ease, padding 0.2s ease",
-                  justifyContent: collapsed ? "center" : "flex-start",
-                  px: collapsed ? 1.2 : 2,
+                  justifyContent: isCollapsed ? "center" : "flex-start",
+                  px: isCollapsed ? 1.2 : 2,
+                  color: alpha(t.palette.primary.contrastText, 0.92),
+                  transition: t.transitions.create(
+                    ["background", "color", "padding"],
+                    { duration: t.transitions.duration.shorter }
+                  ),
                   "&.Mui-selected": {
-                    backgroundColor: "#fff",
-                    color: theme.palette.primary.main,
-                    "& .MuiListItemIcon-root": {
-                      color: theme.palette.primary.main,
-                    },
-                    "&:hover": {
-                      backgroundColor: "#fff",
-                    },
+                    bgcolor: "background.paper",
+                    color: "primary.main",
+                    "& .MuiListItemIcon-root": { color: "primary.main" },
+                    "&:hover": { bgcolor: "background.paper" },
                   },
                   "&:hover": {
-                    backgroundColor: active
-                      ? "#fff"
-                      : "rgba(255,255,255,0.15)",
+                    bgcolor: active
+                      ? "background.paper"
+                      : alpha(t.palette.primary.contrastText, 0.1),
                   },
-                  color: "rgba(255,255,255,0.92)",
-                }}
-                title={collapsed ? item.label : undefined}
+                })}
+                aria-current={active ? "page" : undefined}
               >
                 <ListItemIcon
-                  sx={{
+                  sx={(t) => ({
                     minWidth: 0,
-                    mr: collapsed ? 0 : 1.5,
+                    mr: isCollapsed ? 0 : 1.5,
                     justifyContent: "center",
                     color: active
-                      ? theme.palette.primary.main
-                      : "rgba(255,255,255,0.9)",
-                  }}
+                      ? "primary.main"
+                      : alpha(t.palette.primary.contrastText, 0.9),
+                  })}
                 >
                   {item.icon}
                 </ListItemIcon>
-                {!collapsed && (
+
+                {!isCollapsed && (
                   <ListItemText
                     primary={item.label}
                     primaryTypographyProps={{
                       noWrap: true,
-                      fontSize: 14,
-                      fontWeight: active ? 600 : 400,
+                      variant: "body2",
+                      // Active items use the theme's button fontWeight (600) — genuine
+                      // one-off: colour alone distinguishes active state on collapsed view,
+                      // but weight is needed for the expanded label.
+                      fontWeight: active
+                        ? theme.typography.button.fontWeight
+                        : undefined,
                     }}
                   />
                 )}
               </ListItemButton>
-            );
-          })}
-        </List>
+            </Tooltip>
+          );
+        })}
+      </List>
 
-        {/* Logout Button at Bottom */}
-        <Stack spacing={0.5} sx={{ px: collapsed ? 1 : 2, pb: 2 }}>
+      {/* Logout */}
+      <Stack sx={{ px: isCollapsed ? 1 : 2, pb: 2 }}>
+        <Tooltip title={isCollapsed ? "Logout" : ""} placement="right" arrow>
           <ListItemButton
             onClick={handleLogout}
-            sx={{
-              borderRadius: 2,
-              backgroundColor: "rgba(235, 36, 22, 0.71)",
-              color: "#fff",
-              justifyContent: collapsed ? "center" : "flex-start",
-              px: collapsed ? 1.2 : 2,
-              transition: "background 0.2s ease, opacity 0.2s",
+            sx={(t) => ({
+              borderRadius: 1,
+              bgcolor: alpha(t.palette.error.main, 0.22),
+              color: "primary.contrastText",
+              justifyContent: isCollapsed ? "center" : "flex-start",
+              px: isCollapsed ? 1.2 : 2,
               "&:hover": {
-                opacity: 1,
-                backgroundColor: "rgba(244,67,54,0.2)",
+                bgcolor: alpha(t.palette.error.main, 0.42),
               },
-            }}
-            title={collapsed ? "Logout" : undefined}
+            })}
+            aria-label="Logout"
           >
             <ListItemIcon
               sx={{
                 minWidth: 0,
-                mr: collapsed ? 0 : 1.5,
+                mr: isCollapsed ? 0 : 1.5,
                 justifyContent: "center",
-                color: "#fff",
+                color: "primary.contrastText",
               }}
             >
               <LogoutIcon />
             </ListItemIcon>
-            {!collapsed && (
+            {!isCollapsed && (
               <ListItemText
                 primary="Logout"
                 primaryTypographyProps={{
                   noWrap: true,
-                  fontSize: 14,
-                  fontWeight: 600,
+                  variant: "body2",
+                  fontWeight: theme.typography.button.fontWeight,
                 }}
               />
             )}
           </ListItemButton>
-        </Stack>
+        </Tooltip>
+      </Stack>
 
-        {/* Collapse / Expand Action Button anchored to middle right edge */}
+      {/* Collapse / expand toggle — desktop only */}
+      {!isMobile && (
         <Box
           sx={{
             position: "absolute",
@@ -220,36 +226,62 @@ export default function Sidebar() {
         >
           <Tooltip title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
             <IconButton
-              size="medium"
+              size="small"
               onClick={toggleCollapsed}
               sx={{
-                backgroundColor: "#ffffff",
+                bgcolor: "background.paper",
                 borderRadius: "50%",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-                border: "1px solid #cdd7f5",
-                transition: "transform 0.2s ease, background 0.2s ease",
-                "&:hover": {
-                  backgroundColor: "#f3f4ff",
-                  transform: "scale(1.08)",
-                },
+                boxShadow: 2,
+                border: "1px solid",
+                borderColor: "divider",
+                "&:hover": { bgcolor: "background.default" },
               }}
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {collapsed ? (
-                <ChevronRightIcon
-                  htmlColor={theme.palette.primary.main}
-                  fontSize="medium"
-                />
+                <ChevronRightIcon color="primary" fontSize="small" />
               ) : (
-                <ChevronLeftIcon
-                  htmlColor={theme.palette.primary.main}
-                  fontSize="medium"
-                />
+                <ChevronLeftIcon color="primary" fontSize="small" />
               )}
             </IconButton>
           </Tooltip>
         </Box>
-      </Box>
+      )}
+    </Box>
+  );
+
+  // ── Mobile: temporary overlay drawer ─────────────────────────
+  if (isMobile) {
+    return (
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={closeMobile}
+        ModalProps={{ keepMounted: true }}
+        sx={{ "& .MuiDrawer-paper": paperSx }}
+      >
+        {drawerContent}
+      </Drawer>
+    );
+  }
+
+  // ── Desktop: permanent drawer, collapsible ───────────────────
+  return (
+    <Drawer
+      variant="permanent"
+      sx={{
+        width: drawerWidth,
+        flexShrink: 0,
+        whiteSpace: "nowrap",
+        overflowX: "hidden",
+        transition: theme.transitions.create("width", {
+          easing: theme.transitions.easing.sharp,
+          duration: theme.transitions.duration.enteringScreen,
+        }),
+        "& .MuiDrawer-paper": paperSx,
+      }}
+    >
+      {drawerContent}
     </Drawer>
   );
 }
