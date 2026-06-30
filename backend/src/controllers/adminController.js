@@ -35,6 +35,8 @@ const ensureAbsoluteUrl = (url, req) => {
   return `${base}/${url}`;
 };
 
+const COOKIE_SECURE = process.env.NODE_ENV === 'production' || process.env.COOKIE_SECURE === 'true';
+
 // Admin login reuses users with role 'admin'
 const adminLogin = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
@@ -48,14 +50,29 @@ const adminLogin = asyncHandler(async (req, res) => {
     res.status(401);
     throw new Error('Invalid credentials');
   }
+
+  const token = generateToken(
+    user._id,
+    process.env.ADMIN_JWT_SECRET,
+    process.env.ADMIN_JWT_EXPIRES_IN || process.env.JWT_EXPIRES_IN || '7d'
+  );
+
+  res.cookie('admin_jwt', token, {
+    httpOnly: true,
+    sameSite: 'strict',
+    path: '/',
+    secure: COOKIE_SECURE,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
   res.json({
-    token: generateToken(
-      user._id,
-      process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET,
-      process.env.ADMIN_JWT_EXPIRES_IN || process.env.JWT_EXPIRES_IN || '7d'
-    ),
     user: { id: user._id, name: user.name, email: user.email, role: user.role },
   });
+});
+
+const adminLogout = asyncHandler(async (req, res) => {
+  res.clearCookie('admin_jwt', { path: '/' });
+  res.json({ message: 'Logged out' });
 });
 
 // Dashboard stats
@@ -750,6 +767,7 @@ const getMedicineDetailAdmin = asyncHandler(async (req, res) => {
 module.exports = {
   adminLogin,
   getStats,
+  adminLogout,
   getEarningsByYear,
   getTopManufacturers,
   getTopMedicines,

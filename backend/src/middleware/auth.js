@@ -3,42 +3,42 @@ const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 
 const protect = asyncHandler(async (req, res, next) => {
-  let token;
   const secrets = [process.env.JWT_SECRET, process.env.ADMIN_JWT_SECRET].filter(Boolean);
 
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
+  // Cookie takes priority (dashboard); Authorization: Bearer is the fallback (Flutter app).
+  let rawToken =
+    req.cookies?.admin_jwt ||
+    (req.headers.authorization?.startsWith('Bearer')
+      ? req.headers.authorization.split(' ')[1]
+      : null);
+
+  if (!rawToken) {
+    res.status(401);
+    throw new Error('Not authorized, no token');
+  }
+
+  let decoded = null;
+  for (const secret of secrets) {
     try {
-      token = req.headers.authorization.split(' ')[1];
-      let decoded;
-      for (const secret of secrets) {
-        try {
-          decoded = jwt.verify(token, secret);
-          break;
-        } catch (err) {
-          decoded = null;
-        }
-      }
-      if (!decoded) {
-        res.status(401);
-        throw new Error('Not authorized, token failed');
-      }
-      req.user = await User.findById(decoded.id).select('-password');
-      if (!req.user) {
-        res.status(401);
-        throw new Error('Not authorized, user not found');
-      }
-      return next();
-    } catch (err) {
-      res.status(401);
-      throw new Error('Not authorized, token failed');
+      decoded = jwt.verify(rawToken, secret);
+      break;
+    } catch (_) {
+      decoded = null;
     }
   }
 
-  res.status(401);
-  throw new Error('Not authorized, no token');
+  if (!decoded) {
+    res.status(401);
+    throw new Error('Not authorized, token failed');
+  }
+
+  req.user = await User.findById(decoded.id).select('-password');
+  if (!req.user) {
+    res.status(401);
+    throw new Error('Not authorized, user not found');
+  }
+
+  return next();
 });
 
 const requireRole = (role) =>
