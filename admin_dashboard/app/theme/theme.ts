@@ -1,4 +1,4 @@
-import { createTheme } from "@mui/material/styles";
+import { alpha, createTheme } from "@mui/material/styles";
 
 const theme = createTheme({
   // ── PALETTE ──────────────────────────────────────────
@@ -40,31 +40,40 @@ const theme = createTheme({
       contrastText: "#FFFFFF",
     },
     background: {
-      default: "#F6F8FB",
+      default: "#FAFAFA",
       paper: "#FFFFFF",
     },
     text: {
-      primary: "#0F172A", // 16.8:1 AAA ✓
-      secondary: "#475569", // 8.09:1 AAA ✓
-      disabled: "#94A3B8",
+      primary: "#101828",
+      secondary: "#667085",
+      disabled: "#98A2B3",
     },
     divider: "#E2E8F0",
   },
 
   // ── SHAPE ────────────────────────────────────────────
   shape: {
-    borderRadius: 8,
+    borderRadius: 10,
   },
 
   // ── TYPOGRAPHY ───────────────────────────────────────
   typography: {
     fontFamily:
       "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    h4: { fontSize: "1.25rem", fontWeight: 700, lineHeight: 1.4 },
+    h4: { fontSize: "1.5rem", fontWeight: 600, lineHeight: 1.4 },
     h5: { fontSize: "1.125rem", fontWeight: 600, lineHeight: 1.4 },
-    h6: { fontSize: "1rem", fontWeight: 600, lineHeight: 1.375 },
+    h6: { fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.375 },
+    body1: { fontSize: "0.875rem", lineHeight: 1.43 },
     body2: { fontSize: "0.875rem", lineHeight: 1.43 },
     caption: { fontSize: "0.75rem", lineHeight: 1.33 },
+    overline: {
+      fontSize: "0.6875rem",
+      fontWeight: 600,
+      letterSpacing: "0.06em",
+      textTransform: "uppercase",
+      color: "#667085",
+      lineHeight: 1.5,
+    },
     button: { fontSize: "0.875rem", fontWeight: 600, textTransform: "none" },
   },
 
@@ -74,7 +83,28 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 12,
-          boxShadow: "0 2px 8px rgba(0,0,0,.07)",
+          border: "1px solid #ECEDEF",
+          boxShadow: "0 1px 2px rgba(16,24,40,.05)",
+          backgroundImage: "none",
+        },
+      },
+    },
+
+    MuiCardContent: {
+      styleOverrides: {
+        root: {
+          padding: 24,
+          "&:last-child": { paddingBottom: 24 },
+        },
+      },
+    },
+
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          border: "1px solid #ECEDEF",
+          backgroundImage: "none",
         },
       },
     },
@@ -85,37 +115,64 @@ const theme = createTheme({
           textTransform: "none",
           fontWeight: 600,
           borderRadius: 8,
+          paddingTop: 8,
+          paddingBottom: 8,
+        },
+        contained: {
+          "&:hover": {
+            boxShadow: "0 1px 2px rgba(16,24,40,.10)",
+          },
         },
       },
     },
 
     MuiTableHead: {
       styleOverrides: {
-        root: { backgroundColor: "#EEF3F9" },
+        root: { backgroundColor: "#F9FAFB" },
+      },
+    },
+
+    MuiTableRow: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          "&:hover": { backgroundColor: theme.palette.action.hover },
+        }),
       },
     },
 
     MuiTableCell: {
       styleOverrides: {
         root: {
-          paddingTop: 11,
-          paddingBottom: 11,
+          fontSize: "0.875rem",
+          paddingTop: 14,
+          paddingBottom: 14,
         },
         head: {
           fontSize: "0.6875rem",
           fontWeight: 600,
-          color: "#475569",
-          letterSpacing: "0.02em",
+          color: "#667085",
+          letterSpacing: "0.06em",
+          textTransform: "uppercase",
         },
       },
     },
 
     MuiChip: {
       styleOverrides: {
-        root: {
-          borderRadius: 100,
-          fontWeight: 600,
-          fontSize: "0.6875rem",
+        root: ({ theme, ownerState }) => {
+          const key = ownerState.color;
+          const isSeverity =
+            key && key !== "default" ? theme.palette[key] : undefined;
+          return {
+            borderRadius: 9999,
+            fontWeight: 600,
+            fontSize: "0.6875rem",
+            ...(ownerState.variant === "filled" &&
+              isSeverity && {
+                backgroundColor: alpha(isSeverity.main, 0.12),
+                color: isSeverity.main,
+              }),
+          };
         },
       },
     },
